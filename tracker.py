@@ -70,10 +70,23 @@ class Tracker:
             self._heartbeat()
             rawCapture.truncate(0)
             
+    def add_event(self, event):
+        self.events.append(event)
+
+#  Useful handler functions            
+
+#  Print detection message to screen
 def default_handler(contours, images):
     print("Motion detected in " + str(len(contours)) + " regions!")
     contour, area = cvu.largest_contour(contours)
     print("Largest centroid at " + str(cvu.centroid(contour)) + ", A=" + str(area))
+
+#  Print detection message and save image showing detected motion contours
+def save_motion_image_handler(contours, images):
+    default_handler(contours, images)
+    result = cvu.get_motion_image(images, contours)
+    filename = cvu.imwrite_timestamp(result, prefix="Event_")
+
 
 class DetectionEvent:
 
@@ -109,3 +122,4 @@ class DetectionEvent:
             if cv2.contourArea(contour) >= self.min_contour_area_px :
                 return True
         return False
+

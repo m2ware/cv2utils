@@ -51,9 +51,6 @@ im2 = raw2.array
 #diff_gray = cv2.cvtColor(diff, cv2.COLOR_RGB2GRAY)
 diff, diff_gray = cvu.frame_diff(im1, im2)
 contours, mask = cvu.get_contours(diff_gray, thresh=25, erode=False)
-cv2.drawContours(im1, contours, -1, (0,255,0), 1)
-cv2.drawContours(diff, contours, -1, (0,0,255), 1)
-cv2.drawContours(im2, contours, -1, (0,255,0), 1)
 print("found " + str(len(contours)) + " movement contours.")
 cvu.contour_area(contours)
 
@@ -64,8 +61,7 @@ print("im1.shape = " + str(im1.shape));
 print("im2.shape = " + str(im2.shape));
 print("diff.shape = " + str(diff.shape));
 
-tmp = np.concatenate((im1, diff), axis=1)
-result = np.concatenate((tmp, im2), axis=1)
+result = cvu.get_motion_image( (im1, im2, diff), contours )
 
 print("res.shape = " + str(result.shape));
 

@@ -67,3 +67,17 @@ def imwrite_timestamp(img, prefix="",
     filename = prefix + time.strftime(format) + "." + ext
     cv2.imwrite(filename, img)
     return filename
+
+# Stictch together an image showing frame1, frame2, and delta with
+# identified contours.  Images tuple / list should contain:
+#
+#    (img1, img2, diff)
+def get_motion_image(images, contours, axis=1, draw_contours=True, 
+                     line_width=1, color=(0,0,255)):
+    if len(contours) > 0 and draw_contours :
+        for image in images :
+            cv2.drawContours(image, contours, -1, color, line_width)
+    img1 = images[0]; img2 = images[1]; diff = images[2]
+    tmp = np.concatenate((img1, diff), axis=axis)
+    result = np.concatenate((tmp, img2), axis=axis)
+    return result
