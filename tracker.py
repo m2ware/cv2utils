@@ -12,7 +12,8 @@ import cv2utils.cv2utils as cvu
 
 class Tracker:
 
-    def __init__(self, camera, res=(640,480), farr_len=2, heartbeat_frames=250):
+    def __init__(self, camera, res=(640,480), farr_len=2, 
+                 heartbeat_frames=250, usb_dev=0):
         self._camera = camera
         self.farr_len = farr_len
         self.frame_array = [None] * self.farr_len
@@ -20,6 +21,7 @@ class Tracker:
         self._fr_count = 0
         self._hb_time = 0
         self._heartbeat_frames = heartbeat_frames
+        self.usb_dev = usb_dev
         self.events = list()
         self.events.append(DetectionEvent())
 
@@ -53,7 +55,23 @@ class Tracker:
             timestamp = time.strftime("%Y-%m-%d %I:%M:%S")
             print("[" + timestamp + "] fr= " + str(self._fr_count) + 
                   " fps=" + str(np.round(fps,2)))
+
+    def _process_frame(self, frame):
+        self._store_frame(frame.array)
+        self._detect_motion()
+        self._heartbeat()
+
+    def run_usb(self):
+        # Initialize with one frame
+        cap = cv2.VideoCapture(self.usb_dev)
+        self._hb_time = time.time()
+        ret, frame = cap.read()
+        self._store_frame(frame)
         
+        while(True):
+            ret, frame = cap.read()
+            self._process_frame(frame)        
+
     def run(self):
         # Initialize with one frame
         self._hb_time = time.time()
@@ -63,9 +81,7 @@ class Tracker:
         rawCapture.truncate(0)
 
         for frame in self._camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-            self._store_frame(frame.array)
-            self._detect_motion()
-            self._heartbeat()
+            self._process_frame(frame)
             rawCapture.truncate(0)
             
     def add_event(self, event):
