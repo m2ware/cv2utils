@@ -12,15 +12,14 @@ import cv2utils.cv2utils as cvu
 
 class Tracker:
 
-    heartbeat_frame_count = 100
-
-    def __init__(self, camera, res=(640,480), farr_len=2):
+    def __init__(self, camera, res=(640,480), farr_len=2, heartbeat_frames=250):
         self._camera = camera
         self.farr_len = farr_len
         self.frame_array = [None] * self.farr_len
         self.res = res
         self._fr_count = 0
         self._hb_time = 0
+        self._heartbeat_frames = heartbeat_frames
         self.events = list()
         self.events.append(DetectionEvent())
 
@@ -30,11 +29,11 @@ class Tracker:
         return self._fr_count % self.farr_len
     
     def _store_frame(self, img):
-        #self._camera.capture(self._raw, format="rgb")
         self.frame_array[self._farr_idx()] = img
         self._fr_count += 1
         
     def _detect_motion(self):
+        print(self._farr_idx());
         img1 = self.frame_array[self._farr_idx()]
         img2 = self.frame_array[self._farr_idx(prev_frame=True)]
         diff, diff_gray = cvu.frame_diff(img1, img2)
@@ -47,24 +46,23 @@ class Tracker:
             event.detect(contours, images)
         
     def _heartbeat(self):
-        if ( self._fr_count % Tracker.heartbeat_frame_count ) == 0:
-        
+        if ( self._fr_count % self._heartbeat_frames ) == 0:
             now = time.time()
-            fps = Tracker.heartbeat_frame_count / (now-self._hb_time);
+            fps = self._heartbeat_frames / (now-self._hb_time);
             self._hb_time = now
             timestamp = time.strftime("%Y-%m-%d %I:%M:%S")
             print("[" + timestamp + "] fr= " + str(self._fr_count) + 
-                  " fps=" + str(fps))
+                  " fps=" + str(np.round(fps,2)))
         
     def run(self):
         # Initialize with one frame
         self._hb_time = time.time()
         rawCapture = PiRGBArray(self._camera, size=self.res)
-        self._camera.capture(rawCapture, format="rgb")
+        self._camera.capture(rawCapture, format="bgr")
         self._store_frame(rawCapture.array)
         rawCapture.truncate(0)
 
-        for frame in self._camera.capture_continuous(rawCapture, format="rgb", use_video_port=True):
+        for frame in self._camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
             self._store_frame(frame.array)
             self._detect_motion()
             self._heartbeat()
@@ -86,7 +84,7 @@ def save_motion_image_handler(contours, images):
     default_handler(contours, images)
     result = cvu.get_motion_image(images, contours)
     filename = cvu.imwrite_timestamp(result, prefix="Event_")
-
+    print("wrote " + filename)
 
 class DetectionEvent:
 
@@ -111,7 +109,7 @@ class DetectionEvent:
         now = time.time()
         if (now - self._last_event_time) < self.time_between_triggers_s :
             return False
-        if self._trigger_count > self.min_sequential_frames :
+        if self._trigger_count >= self.min_sequential_frames :
             self.handler(contours, images)
             self._trigger_count = 0
             self._last_event_time = now

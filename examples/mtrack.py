@@ -18,7 +18,7 @@ event = DetectionEvent(handler=save_motion_image_handler,
                        min_sequential_frames=2,
                        min_contour_area_px=200)
 
-tracker.add_event(event)
+#tracker.add_event(event)
 
 print("Starting tracker...")
 
