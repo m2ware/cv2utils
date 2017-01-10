@@ -13,7 +13,8 @@ import cv2utils.cv2utils as cvu
 class Tracker:
 
     def __init__(self, camera, res=(640,480), farr_len=2, 
-                 heartbeat_frames=250, usb_dev=0):
+                 heartbeat_frames=250, usb_dev=0, threshold=25,
+                 vflip=False, hflip=False):
         self._camera = camera
         self.farr_len = farr_len
         self.frame_array = [None] * self.farr_len
@@ -22,6 +23,9 @@ class Tracker:
         self._hb_time = 0
         self._heartbeat_frames = heartbeat_frames
         self.usb_dev = usb_dev
+        self.vflip = vflip
+        self.hflip = hflip
+        self.threshold=threshold
         self.events = list()
         self.events.append(DetectionEvent())
 
@@ -31,15 +35,20 @@ class Tracker:
         return self._fr_count % self.farr_len
     
     def _store_frame(self, img):
+        if (self.vflip): 
+            img=cv2.flip(img,0)
+        if (self.hflip):
+            img=cv2.flip(img,1)
         self.frame_array[self._farr_idx()] = img
         self._fr_count += 1
         
     def _detect_motion(self):
-        print(self._farr_idx());
+        #print(str(self._farr_idx()) + " " + 
+        #      str(self._farr_idx(prev_frame=True)))
         img1 = self.frame_array[self._farr_idx()]
         img2 = self.frame_array[self._farr_idx(prev_frame=True)]
         diff, diff_gray = cvu.frame_diff(img1, img2)
-        contours, mask = cvu.get_contours(diff_gray, thresh=25, erode=False)
+        contours, mask = cvu.get_contours(diff_gray, thresh=self.threshold, erode=False)
         images = (img1, img2, diff)
         self._process_events(contours, images)
         
@@ -57,7 +66,7 @@ class Tracker:
                   " fps=" + str(np.round(fps,2)))
 
     def _process_frame(self, frame):
-        self._store_frame(frame.array)
+        self._store_frame(frame)
         self._detect_motion()
         self._heartbeat()
 
@@ -66,6 +75,8 @@ class Tracker:
         cap = cv2.VideoCapture(self.usb_dev)
         self._hb_time = time.time()
         ret, frame = cap.read()
+        print(frame.shape)
+
         self._store_frame(frame)
         
         while(True):
