@@ -7,6 +7,7 @@ import time
 import cv2
 import numpy as np
 import sys
+import logging
 
 writeComposite = True
 
@@ -41,6 +42,26 @@ def centroid(contour):
     cx = int(M['m10']/M['m00'])
     cy = int(M['m01']/M['m00'])
     return (cx, cy)
+
+# draw_x draws an x to mark a spot on an image
+# im is an image
+# xy is a tuple (x,y) for the center
+# length is the length from center (symmetric)
+# color is a 3tuple or list holding RGB values,
+# or a scalar if image is BW    
+def draw_x(im, xy, length=5, color=(1, 0, 0)):
+    imsize = im.shape
+    xt = xy[0]
+    yt = xy[1]
+    
+    for i in np.arange(-length,length+1):
+        x = xt+i; y = yt+i
+        if (x >= 0) and (x < imsize[1]) and (y >= 0) and (y < imsize[0]):
+            im[y,x,:] = color
+        x = xt-i
+        if (x >= 0) and (x < imsize[1]) and (y >= 0) and (y < imsize[0]):
+            im[y,x,:] = color
+        
     
 def largest_contour(contours):
     max_area = 0
@@ -50,7 +71,7 @@ def largest_contour(contours):
         if area > max_area :
             max_area = area
             largest = contour
-    return contour, max_area 
+    return largest, max_area 
 
 def contour_area(contours):
     for contour in contours:
@@ -81,3 +102,16 @@ def get_motion_image(images, contours, axis=1, draw_contours=True,
     tmp = np.concatenate((img1, diff), axis=axis)
     result = np.concatenate((tmp, img2), axis=axis)
     return result
+
+def get_logger(logname='logger', filename='logger.log',
+               console_log_level=logging.NOTSET,
+               file_log_level=logging.NOTSET):
+    logging.basicConfig(format='%(asctime)s %(message)s',
+                        datefmt='[%y-%m-%d %I:%M:%S]',
+                        filename=filename,
+                        filemode='w')
+    console = logging.StreamHandler()
+    console.setLevel(console_log_level)
+    logging.getLogger('').addHandler(console)
+    logger = logging.getLogger(logname)
+    return logger

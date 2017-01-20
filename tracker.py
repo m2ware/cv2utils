@@ -101,14 +101,19 @@ class Tracker:
 #  Useful handler functions            
 
 #  Print detection message to screen
-def default_handler(contours, images):
+def default_handler(contours, images, state=None):
     print("Motion detected in " + str(len(contours)) + " regions!")
     contour, area = cvu.largest_contour(contours)
     print("Largest centroid at " + str(cvu.centroid(contour)) + ", A=" + str(area))
 
 #  Print detection message and save image showing detected motion contours
-def save_motion_image_handler(contours, images):
+def save_motion_image_handler(contours, images, state=None):
     default_handler(contours, images)
+    contour, area = cvu.largest_contour(contours)
+    centroid = cvu.centroid(contour)
+    print(area)
+    cvu.draw_x(images[0],centroid,color=(0,1,1))
+    cvu.draw_x(images[1],centroid,color=(0,1,1))
     result = cvu.get_motion_image(images, contours)
     filename = cvu.imwrite_timestamp(result, prefix="Event_")
     print("wrote " + filename)
@@ -118,13 +123,14 @@ class DetectionEvent:
     def __init__(self, handler=default_handler,
                  time_between_triggers_s=1.0,
                  min_sequential_frames=1,
-                 min_contour_area_px=50):
+                 min_contour_area_px=50, state=None):
         self.handler = handler
         self._last_event_time = 0
         self._trigger_count = 0
         self.time_between_triggers_s = time_between_triggers_s
         self.min_contour_area_px = min_contour_area_px
         self.min_sequential_frames = min_sequential_frames
+        self._state = state
 
     # Apply detection criteria and invoke handler if satisfied
     def detect(self, contours, images):
@@ -137,7 +143,7 @@ class DetectionEvent:
         if (now - self._last_event_time) < self.time_between_triggers_s :
             return False
         if self._trigger_count >= self.min_sequential_frames :
-            self.handler(contours, images)
+            self.handler(contours, images, self._state)
             self._trigger_count = 0
             self._last_event_time = now
             return True
