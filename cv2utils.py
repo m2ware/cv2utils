@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import sys
 import logging
+#from .tracker import Tracker
 
 writeComposite = True
 
@@ -89,9 +90,11 @@ def largest_contour(contours):
     return largest, max_area 
 
 def contour_area(contours):
+    result = ""
     for contour in contours:
         area = cv2.contourArea(contour)
-        print("A=" + str(area))
+        result += ("A=" + str(area) + "\n")
+        return(result)
 
 def frame_diff(img1, img2, thresh=25, max=255):
     diff = cv2.absdiff(img1, img2)
