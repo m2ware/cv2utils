@@ -14,7 +14,7 @@ rez = (320, 240)
 #camera.resolution = rez
 #camera.framerate = 8
 
-def motor_handler(contours, images):
+def motor_handler(contours, images, state=None):
     
     imsize = images[0].shape
     print(imsize)

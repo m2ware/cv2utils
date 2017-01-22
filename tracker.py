@@ -48,7 +48,8 @@ class Tracker:
         img1 = self.frame_array[self._farr_idx()]
         img2 = self.frame_array[self._farr_idx(prev_frame=True)]
         diff, diff_gray = cvu.frame_diff(img1, img2)
-        contours, mask = cvu.get_contours(diff_gray, thresh=self.threshold, erode=False)
+        contours, mask = cvu.get_contours(diff_gray, thresh=self.threshold, 
+                                          erode=True, dilate=True)
         images = (img1, img2, diff)
         self._process_events(contours, images)
         
@@ -110,10 +111,16 @@ def default_handler(contours, images, state=None):
 def save_motion_image_handler(contours, images, state=None):
     default_handler(contours, images)
     contour, area = cvu.largest_contour(contours)
-    centroid = cvu.centroid(contour)
-    print(area)
-    cvu.draw_x(images[0],centroid,color=(0,1,1))
-    cvu.draw_x(images[1],centroid,color=(0,1,1))
+    #centroid = cvu.centroid(contour)
+    centroid = cvu.avg_contour_centroid(contours)
+    
+    print(centroid)
+    # Place the detected contours on the images
+    for image in images:
+        cv2.drawContours(image, contours, -1, 
+                         color=(25,128,255), thickness=1)
+        cvu.draw_x(images[0],centroid,length=9)
+    
     result = cvu.get_motion_image(images, contours)
     filename = cvu.imwrite_timestamp(result, prefix="Event_")
     print("wrote " + filename)
@@ -147,6 +154,10 @@ class DetectionEvent:
             self._trigger_count = 0
             self._last_event_time = now
             return True
+            
+    def _meets_min_area_contour(self, contour):
+        if cv2.contourArea(contour) >= self.min_contour_area_px:
+            return true
 
     def _meets_min_area(self, contours):
         for contour in contours:

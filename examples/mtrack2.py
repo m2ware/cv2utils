@@ -23,17 +23,23 @@ def motor_handler(contours, images, state):
     vres=imsize[0]/2.
     # Find area of largest motion contour
     contour, area = cvu.largest_contour(contours)
-    centroid = cvu.centroid(contour)
+    #centroid = cvu.centroid(contour)
+    centroid = cvu.avg_contour_centroid(contours)
+    
     # Normalize the largest motion centroid in the [-1,1] space
     hpos = (centroid[0]-hres)/hres
     vpos = (centroid[1]-vres)/vres
     # Convert to number of PWM pulses 
-    max_ticks = 3
-    hdelta = max_ticks*hpos
-    vdelta = max_ticks*vpos
+    max_delta = 4.5
+    hdelta = max_delta*hpos
+    vdelta = max_delta*vpos
+    hpulses = int(np.ceil(np.abs(hdelta)))+1
+    vpulses = int(np.ceil(np.abs(vdelta)))+1
+    print("hpc=" + str(hpulses) + ", vpc=" + str(vpulses))
     
     mindelta = 0.05
-    if (np.abs(hdelta) < mindelta) and (np.abs(vdelta) < mindelta) : return
+    #if (np.abs(hdelta) < mindelta) and (np.abs(vdelta) < mindelta): 
+    #    return
     
     state.xpos -= hdelta; 
     state.ypos += vdelta
@@ -55,9 +61,9 @@ def motor_handler(contours, images, state):
 
     # Call command-line for PWM pulse train generator as detached processes
     # to steer incrementally toward detected motion.  
-    os.system("gpio_pwm 20 10000 2 " + 
+    os.system("gpio_pwm 20 10000 " + str(hpulses) + " " +
               str(np.round(state.xpos,2)) + " &" )
-    os.system("gpio_pwm 21 10000 2 " + 
+    os.system("gpio_pwm 21 10000 " + str(vpulses) + " " +
               str(np.round(state.ypos,2)) + " &" )
 
 # Steer to neutral
@@ -66,27 +72,27 @@ state.xpos = 15.0
 state.ypos = 15.0
 os.system("gpio_pwm 20 10000 50 " + str(state.xpos) + " &")
 os.system("gpio_pwm 21 10000 50 " + str(state.ypos) + " &")
-time.sleep(1.0)
+time.sleep(1.5)
 
 # Create a new tracker object for Video0 (USB camera)
-tracker = Tracker(camera=None, res=rez, usb_dev=0, threshold=45, 
+tracker = Tracker(camera=None, res=rez, usb_dev=0, threshold=30, 
                   vflip=True, hflip=True)
 # Clear out the default chatty detection handler
 tracker.events = []
 
 # Add an event handler to save images on sequential movement frames
 event = DetectionEvent(handler=save_motion_image_handler,
-                       time_between_triggers_s = 5.0,
-                       min_sequential_frames=3,
-                       min_contour_area_px=600)
+                       time_between_triggers_s = 30.0,
+                       min_sequential_frames=1,
+                       min_contour_area_px=500)
 # Comment/uncomment to activate
 #tracker.add_event(event)
 
 # Add the servo-steering event / handler
 event = DetectionEvent(handler=motor_handler,
-                       time_between_triggers_s = 0.75,
-                       min_sequential_frames=2,
-                       min_contour_area_px=600, state=state)
+                       time_between_triggers_s = 0.85,
+                       min_sequential_frames=1,
+                       min_contour_area_px=500, state=state)
 # Comment/uncomment to activate
 tracker.add_event(event)
 
