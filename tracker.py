@@ -4,15 +4,15 @@
 import cv2
 import time
 import numpy as np
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+#from picamera.array import PiRGBArray
+#from picamera import PiCamera
 import logging
 
 import cv2utils.cv2utils as cvu
 
 class Tracker:
 
-    def __init__(self, camera, res=(640,480), farr_len=2, 
+    def __init__(self, camera, res=(640,480), farr_len=2,
                  heartbeat_frames=250, usb_dev=0, threshold=25,
                  vflip=False, hflip=False):
         self._camera = camera
@@ -32,18 +32,18 @@ class Tracker:
         print(__name__)
 
     def _farr_idx(self, prev_frame=False):
-        if (prev_frame): 
+        if (prev_frame):
             return (self._fr_count-1)%self.farr_len
         return self._fr_count % self.farr_len
-    
+
     def _store_frame(self, img):
-        if (self.vflip): 
+        if (self.vflip):
             img=cv2.flip(img,0)
         if (self.hflip):
             img=cv2.flip(img,1)
         self.frame_array[self._farr_idx()] = img
         self._fr_count += 1
-        
+
     def _detect_motion(self):
         img1 = self.frame_array[self._farr_idx()]
         img2 = self.frame_array[self._farr_idx(prev_frame=True)]
@@ -52,22 +52,22 @@ class Tracker:
                                           erode=True, dilate=True)
         images = (img1, img2, diff)
         self._process_events(contours, images)
-        
+
     def _process_events(self, contours, images):
         for event in self.events:
             event.detect(contours, images)
-    
+
     def get_logger():
         log = logging.getLogger(__name__)
         return log
-        
+
     def _heartbeat(self):
         log = Tracker.get_logger()
         if ( self._fr_count % self._heartbeat_frames ) == 0:
             now = time.time()
             fps = self._heartbeat_frames / (now-self._hb_time);
             self._hb_time = now
-            log.info("[heartbeat] fr=" + str(self._fr_count) + 
+            log.info("[heartbeat] fr=" + str(self._fr_count) +
                   " fps=" + str(np.round(fps,2)))
 
     def _process_frame(self, frame):
@@ -85,33 +85,33 @@ class Tracker:
         log.info("Resolution = " + str(frame.shape))
 
         self._store_frame(frame)
-        
+
         while(True):
             ret, frame = cap.read()
-            self._process_frame(frame)        
-
-    def run(self):
-        log = Tracker.get_logger()
-        log.info("Started tracking on RaspiCam")
-        # Initialize with one frame
-        self._hb_time = time.time()
-        rawCapture = PiRGBArray(self._camera, size=self.res)
-        self._camera.capture(rawCapture, format="bgr")
-        log.info("Resolution = " + str(rawCapture.array.shape))
-
-        self._store_frame(rawCapture.array)
-        rawCapture.truncate(0)
-
-        for frame in self._camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
             self._process_frame(frame)
-            rawCapture.truncate(0)
-            
+
+#    def run(self):
+#        log = Tracker.get_logger()
+#        log.info("Started tracking on RaspiCam")
+        # Initialize with one frame
+#        self._hb_time = time.time()
+#        rawCapture = PiRGBArray(self._camera, size=self.res)
+#        self._camera.capture(rawCapture, format="bgr")
+#        log.info("Resolution = " + str(rawCapture.array.shape))
+
+#        self._store_frame(rawCapture.array)
+#        rawCapture.truncate(0)
+
+#        for frame in self._camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+#            self._process_frame(frame)
+#            rawCapture.truncate(0)
+
     def add_event(self, event):
         log = Tracker.get_logger()
         # Should add ID to events for logging clarity...
         log.info("Added detection event")
         self.events.append(event)
-        
+
     def _get_default_logger():
         logging.basicConfig(level=logging.DEBUG,
                             format='[%(asctime)s][%(levelname)s]%(message)s',
@@ -124,7 +124,7 @@ class Tracker:
         console.setFormatter(formatter)
         logging.getLogger(__name__).addHandler(console)
 
-#  Useful handler functions            
+#  Useful handler functions
 
 #  Print detection message to screen
 def default_handler(contours, images, state=None):
@@ -140,14 +140,14 @@ def save_motion_image_handler(contours, images, state=None):
     contour, area = cvu.largest_contour(contours)
     #centroid = cvu.centroid(contour)
     centroid = cvu.avg_contour_centroid(contours)
-    
+
     log.debug("c = " + str(centroid))
     # Place the detected contours on the images
     for image in images:
-        cv2.drawContours(image, contours, -1, 
+        cv2.drawContours(image, contours, -1,
                          color=(25,128,255), thickness=1)
         cvu.draw_x(images[0],centroid,length=9)
-    
+
     result = cvu.get_motion_image(images, contours)
     filename = cvu.imwrite_timestamp(result, prefix="Event_")
     log.info("Wrote " + filename)
@@ -181,7 +181,7 @@ class DetectionEvent:
             self._trigger_count = 0
             self._last_event_time = now
             return True
-            
+
     def _meets_min_area_contour(self, contour):
         if cv2.contourArea(contour) >= self.min_contour_area_px:
             return true

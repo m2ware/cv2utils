@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 # import the necessary packages
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+#from picamera.array import PiRGBArray
+#from picamera import PiCamera
 import time
 import cv2
 import numpy as np
@@ -16,7 +16,7 @@ def imdiff(image1, image2) :
     diff = cv2.subtract(image2, image1)
     return(diff)
 
-def imdiff_gray(image1, image2) : 
+def imdiff_gray(image1, image2) :
     diff = imdiff(image1, image2)
     return cv2.cvtColor( diff, cv2.COLOR_RGB2GRAY )
 
@@ -87,7 +87,7 @@ def largest_contour(contours):
         if area > max_area :
             max_area = area
             largest = contour
-    return largest, max_area 
+    return largest, max_area
 
 def contour_area(contours):
     result = ""
@@ -101,7 +101,7 @@ def frame_diff(img1, img2, thresh=25, max=255):
     diff_gray = cv2.cvtColor(diff, cv2.COLOR_RGB2GRAY)
     return diff, diff_gray
 
-def imwrite_timestamp(img, prefix="", 
+def imwrite_timestamp(img, prefix="",
                       format="%Y-%m-%d_%I_%M_%S", ext="jpeg"):
     filename = prefix + time.strftime(format) + "." + ext
     cv2.imwrite(filename, img)
