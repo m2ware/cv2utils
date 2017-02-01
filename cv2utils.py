@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 # import the necessary packages
-from picamera.array import PiRGBArray
-from picamera import PiCamera
+#from picamera.array import PiRGBArray
+#from picamera import PiCamera
 import time
 import cv2
 import numpy as np
@@ -16,7 +16,7 @@ def imdiff(image1, image2) :
     diff = cv2.subtract(image2, image1)
     return(diff)
 
-def imdiff_gray(image1, image2) : 
+def imdiff_gray(image1, image2) :
     diff = imdiff(image1, image2)
     return cv2.cvtColor( diff, cv2.COLOR_RGB2GRAY )
 
@@ -24,7 +24,7 @@ def hist_print(img, bins):
     counts,edges = np.histogram(img, bins=bins)
     print(edges)
     print(counts)
-    
+
 def avg_contour_centroid(contours):
     wavg_centroid = np.double((0.,0.))
     total_area = 0.;
@@ -38,14 +38,14 @@ def avg_contour_centroid(contours):
 
 
 def get_contours(img, thresh=128, max=255, dilate=True, erode=True):
-    
+
     th, dst = cv2.threshold(img, thresh, max, cv2.THRESH_BINARY)
 
     if (erode): dst = cv2.erode(dst, None, iterations=1)
-    
+
     kernel = np.ones((5,5), np.uint8)
     if (dilate): dst = cv2.dilate(dst, kernel=kernel, iterations=2)
-    
+
     #im2, contours, hierarchy = cv2.findContours(dst,cv2.RETR_TREE,
     #                                            cv2.CHAIN_APPROX_SIMPLE)
     im2, contours, hierarchy = cv2.findContours(dst,cv2.RETR_EXTERNAL,
@@ -87,7 +87,7 @@ def largest_contour(contours):
         if area > max_area :
             max_area = area
             largest = contour
-    return largest, max_area 
+    return largest, max_area
 
 def contour_area(contours):
     result = ""
@@ -101,7 +101,7 @@ def frame_diff(img1, img2, thresh=25, max=255):
     diff_gray = cv2.cvtColor(diff, cv2.COLOR_RGB2GRAY)
     return diff, diff_gray
 
-def imwrite_timestamp(img, prefix="", 
+def imwrite_timestamp(img, prefix="",
                       format="%Y-%m-%d_%I_%M_%S", ext="jpeg"):
     filename = prefix + time.strftime(format) + "." + ext
     cv2.imwrite(filename, img)
