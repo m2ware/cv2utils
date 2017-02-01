@@ -48,7 +48,7 @@ class Tracker:
         img1 = self.frame_array[self._farr_idx()]
         img2 = self.frame_array[self._farr_idx(prev_frame=True)]
         diff, diff_gray = cvu.frame_diff(img1, img2)
-        contours, mask = cvu.get_contours(diff_gray, thresh=self.threshold, 
+        contours, mask = cvu.get_contours(diff_gray, thresh=self.threshold,
                                           erode=True, dilate=True)
         images = (img1, img2, diff)
         self._process_events(contours, images)

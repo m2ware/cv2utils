@@ -24,7 +24,7 @@ def hist_print(img, bins):
     counts,edges = np.histogram(img, bins=bins)
     print(edges)
     print(counts)
-    
+
 def avg_contour_centroid(contours):
     wavg_centroid = np.double((0.,0.))
     total_area = 0.;
@@ -38,14 +38,14 @@ def avg_contour_centroid(contours):
 
 
 def get_contours(img, thresh=128, max=255, dilate=True, erode=True):
-    
+
     th, dst = cv2.threshold(img, thresh, max, cv2.THRESH_BINARY)
 
     if (erode): dst = cv2.erode(dst, None, iterations=1)
-    
+
     kernel = np.ones((5,5), np.uint8)
     if (dilate): dst = cv2.dilate(dst, kernel=kernel, iterations=2)
-    
+
     #im2, contours, hierarchy = cv2.findContours(dst,cv2.RETR_TREE,
     #                                            cv2.CHAIN_APPROX_SIMPLE)
     im2, contours, hierarchy = cv2.findContours(dst,cv2.RETR_EXTERNAL,
