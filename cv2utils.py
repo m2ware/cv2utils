@@ -72,9 +72,9 @@ def draw_x(img, xy, length=5, color=(0xFF, 0x7F, 0x00),
     
     if (shadow):
         cv2.line(img, (x1,y1),(x2, y2), color=shadow_color,
-                 thickness=thickness+2)
+                 thickness=(thickness+2))
         cv2.line(img, (x1,y2),(x2, y1), color=shadow_color,
-                 thickness=thickness+2)
+                 thickness=(thickness+2))
         
     cv2.line(img, (x1,y1),(x2, y2), color=color, thickness=thickness)
     cv2.line(img, (x1,y2),(x2, y1), color=color, thickness=thickness)
@@ -120,7 +120,6 @@ def get_motion_image(images, contours, axis=1):
     #if len(contours) > 0 and draw_contours :
     #    for image in images :
     #        cv2.drawContours(image, contours, -1, color, line_width)
-
 
 def get_logger(logname='logger', filename='logger.log',
                console_log_level=logging.NOTSET,

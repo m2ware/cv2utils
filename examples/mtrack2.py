@@ -8,8 +8,6 @@ import numpy as np
 import time
 import logging
 
-rez = (320, 240)
-
 #camera = PiCamera()
 #camera.hflip = True
 #camera.vflip = True
@@ -22,16 +20,22 @@ def motor_handler(contours, images, state):
     imsize = images[0].shape
     hres=imsize[1]/2.
     vres=imsize[0]/2.
+    
+    biasx = -15
+    biasy = 10
+    
+    tgtx = hres+biasx
+    tgty = vres+biasy
     # Find area of largest motion contour
-    contour, area = cvu.largest_contour(contours)
+    #contour, area = cvu.largest_contour(contours)
     #centroid = cvu.centroid(contour)
     centroid = cvu.avg_contour_centroid(contours)
     
     # Normalize the largest motion centroid in the [-1,1] space
-    hpos = (centroid[0]-hres)/hres
-    vpos = (centroid[1]-vres)/vres
+    hpos = (centroid[0]-tgtx)/hres
+    vpos = (centroid[1]-tgty)/vres
     # Convert to number of PWM pulses 
-    max_delta = 5.
+    max_delta = 3.5
     hdelta = max_delta*hpos
     vdelta = max_delta*vpos
     hpulses = int(np.ceil(np.abs(hdelta)))+1
@@ -39,8 +43,6 @@ def motor_handler(contours, images, state):
     log.debug("hpc=" + str(hpulses) + ", vpc=" + str(vpulses))
     
     mindelta = 0.05
-    #if (np.abs(hdelta) < mindelta) and (np.abs(vdelta) < mindelta): 
-    #    return
     
     state.xpos -= hdelta; 
     state.ypos += vdelta
@@ -53,7 +55,7 @@ def motor_handler(contours, images, state):
     # 15 corresponds to 1500us position (neutral) on standard servo
     # Stuff for debug
     log.debug("N=" + str(len(contours)))
-    log.debug("A=" + str(area))
+    #log.debug("A=" + str(area))
     log.debug("centroid = " + str(centroid))
     log.debug("hdelta=" + str(np.round(hdelta,2)) + 
           ", vdelta=" + str(np.round(vdelta,2)))
@@ -76,28 +78,28 @@ os.system("gpio_pwm 21 10000 50 " + str(state.ypos) + " &")
 time.sleep(1.5)
 
 # Create a new tracker object for Video0 (USB camera)
-tracker = Tracker(camera=None, res=rez, usb_dev=0, threshold=30, 
+tracker = Tracker(camera=None, usb_dev=0, threshold=20, 
                   vflip=True, hflip=True)
 # Clear out the default chatty detection handler
 tracker.events = []
 
 # Uncomment to turn off debug-level logging
-log = Tracker.get_logger()
-log.level = logging.INFO
+#log = Tracker.get_logger()
+#log.level = logging.INFO
 
 # Add an event handler to save images on sequential movement frames
 event = DetectionEvent(handler=save_motion_image_handler,
-                       time_between_triggers_s = 30.0,
+                       time_between_triggers_s = 10.0,
                        min_sequential_frames=1,
-                       min_contour_area_px=500)
+                       min_contour_area_px=200)
 # Comment/uncomment to activate
 #tracker.add_event(event)
 
 # Add the servo-steering event / handler
 event = DetectionEvent(handler=motor_handler,
-                       time_between_triggers_s = 0.85,
-                       min_sequential_frames=1,
-                       min_contour_area_px=500, state=state)
+                       time_between_triggers_s = 0.92,
+                       min_sequential_frames=2,
+                       min_contour_area_px=200, state=state)
 # Comment/uncomment to activate
 tracker.add_event(event)
 

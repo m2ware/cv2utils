@@ -136,6 +136,9 @@ def default_handler(contours, images, state=None):
 #  Print detection message and save image showing detected motion contours
 def save_motion_image_handler(contours, images, state=None):
     log = logging.getLogger(__name__)
+    tmp = np.array(images[0].shape) / 2
+    imcenter = (int(tmp[1]), int(tmp[0]))
+
     default_handler(contours, images)
     contour, area = cvu.largest_contour(contours)
     #centroid = cvu.centroid(contour)
@@ -146,7 +149,8 @@ def save_motion_image_handler(contours, images, state=None):
     for image in images:
         cv2.drawContours(image, contours, -1, 
                          color=(25,128,255), thickness=1)
-        cvu.draw_x(images[0],centroid,length=9)
+        cvu.draw_x(image,centroid,length=9)
+        cvu.draw_x(image,imcenter,length=9,thickness=1,shadow=False,color=(0xC0, 0xFF, 0x10))
     
     result = cvu.get_motion_image(images, contours)
     filename = cvu.imwrite_timestamp(result, prefix="Event_")
@@ -157,18 +161,20 @@ class DetectionEvent:
     def __init__(self, handler=default_handler,
                  time_between_triggers_s=1.0,
                  min_sequential_frames=1,
-                 min_contour_area_px=50, state=None):
+                 min_contour_area_px=50, max_contour_area_px=50000,
+                 state=None):
         self.handler = handler
         self._last_event_time = 0
         self._trigger_count = 0
         self.time_between_triggers_s = time_between_triggers_s
         self.min_contour_area_px = min_contour_area_px
+        self.max_contour_area_px = max_contour_area_px
         self.min_sequential_frames = min_sequential_frames
         self._state = state
 
     # Apply detection criteria and invoke handler if satisfied
     def detect(self, contours, images):
-        if len(contours) > 0 and self._meets_min_area(contours):
+        if len(contours) > 0 and self._meets_area_criteria(contours):
             self._trigger_count +=1
         else:
             self._trigger_count = 0
@@ -185,10 +191,55 @@ class DetectionEvent:
     def _meets_min_area_contour(self, contour):
         if cv2.contourArea(contour) >= self.min_contour_area_px:
             return true
+            
+    def _meets_max_area_contour(self, contour):
+        if cv2.contourArea(contour) <= self.max_contour_area_px:
+            return true
 
-    def _meets_min_area(self, contours):
-        for contour in contours:
-            if cv2.contourArea(contour) >= self.min_contour_area_px :
-                return True
+    def _meets_area_criteria(self, contours):
+        contour, area = cvu.largest_contour(contours)
+        if area > self.min_contour_area_px and area < self.max_contour_area_px:
+            return True
         return False
 
+
+class RegionOfInterestDetector:
+
+    # Abstract method, should return a collection of contours defining
+    # regions of interest that will be examined for appropriate size and 
+    # frame count criteria
+    #@abstractmethod
+    def get_regions_of_interest(self, images):
+        raise("Abstract class does not implement this method.")
+            
+class MotionRegionOfInterestDetector(RegionOfInterestDetector):
+    
+    def __init__(self, threshold=25):
+        self._threshold = 25
+
+    def get_regions_of_interest(self, images):
+        diff, diff_gray = cvu.frame_diff(images[0], images[1])
+        contours, mask = cvu.get_contours(diff_gray, thresh=self._threshold,
+                                          erode=True, dilate=True)
+        return contours, diff
+            
+        
+class DetectBrightestInPlane(RegionOfInterestDetector):
+        
+    # Restrict to a single color plane, find bright spots
+    def __init__(self, threshold=25, color_plane=0):
+        self._threshold = 25
+        self._color_plane = color_plane
+            
+    #  This detector looks at only one color plane, removes the average across the image,
+    #  and identifies regions exhibiting high values.
+    def get_regions_of_interest(self, images):
+            
+        plane = images[1][:,:,color_plane]
+        meanval = cv2.mean(plane)
+        mean_removed_plane = plane-meanval
+
+        contours, mask = cvu.get_contours(mean_removed_plane, thresh=self._threshold,
+                                          erode=True, dilate=True)
+            
+        return contours, plane
