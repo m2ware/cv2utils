@@ -25,6 +25,21 @@ def hist_print(img, bins):
     print(edges)
     print(counts)
 
+def mean_remove(img):
+
+    imsize = img.shape
+    if (len(imsize) < 3):
+        meanval = cv2.mean(img)
+        return (img-meanval)
+
+    res = np.ndarray(imsize)
+    for i in range(0,imsize[2]):
+        meanval = cv2.mean(img[:,:,i])
+        res[:,:,i] = img[:,:,i]-meanval
+
+    return res
+
+
 def avg_contour_centroid(contours):
     wavg_centroid = np.double((0.,0.))
     total_area = 0.;
@@ -35,7 +50,6 @@ def avg_contour_centroid(contours):
         total_area += area
     wavg_centroid /= total_area
     return (np.int(wavg_centroid[0]), np.int(wavg_centroid[1]))
-
 
 def get_contours(img, thresh=128, max=255, dilate=True, erode=True):
 
