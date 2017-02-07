@@ -77,22 +77,29 @@ def centroid(contour):
 # xy is a tuple (x,y) for the center
 # length is the length from center (symmetric)
 # color is a 3tuple or list holding RGB values,
-# or a scalar if image is BW    
-def draw_x(img, xy, length=5, color=(0xFF, 0x7F, 0x00), 
+# or a scalar if image is BW
+def draw_x(img, xy, length=5, color=(0xFF, 0x7F, 0x00),
            thickness=2, shadow=True, shadow_color=(200, 200, 200) ):
     imsize = img.shape
     x1 = xy[0]-length; x2 = xy[0]+length
     y1 = xy[1]-length; y2 = xy[1]+length
-    
+
     if (shadow):
         cv2.line(img, (x1,y1),(x2, y2), color=shadow_color,
                  thickness=(thickness+2))
         cv2.line(img, (x1,y2),(x2, y1), color=shadow_color,
                  thickness=(thickness+2))
-        
+
     cv2.line(img, (x1,y1),(x2, y2), color=color, thickness=thickness)
     cv2.line(img, (x1,y2),(x2, y1), color=color, thickness=thickness)
-    
+
+def find_that_laser(image_plane):
+
+    img_filtered = cv2.GaussianBlur(image_plane, (15,15), 0)
+    (min_val, max_val, min_region, max_region) = cv2.minMaxLoc(img_filtered)
+    return max_val, max_region
+
+
 def largest_contour(contours):
     max_area = 0
     largest = None
