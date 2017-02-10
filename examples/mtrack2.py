@@ -21,8 +21,8 @@ def motor_handler(contours, images, state):
     hres=imsize[1]/2.
     vres=imsize[0]/2.
 
-    biasx = -40
-    biasy = 15
+    biasx = -37
+    biasy = 10
 
     tgtx = hres+biasx
     tgty = vres+biasy
@@ -35,7 +35,7 @@ def motor_handler(contours, images, state):
     hpos = (centroid[0]-tgtx)/hres
     vpos = (centroid[1]-tgty)/vres
     # Convert to number of PWM pulses
-    max_delta = 10.0
+    max_delta = 13.0
     hdelta = max_delta*(hpos*np.abs(hpos))
     vdelta = max_delta*(vpos*np.abs(vpos))
     hpulses = int(np.ceil(np.abs(hdelta)))+1
@@ -78,7 +78,7 @@ os.system("gpio_pwm 21 10000 50 " + str(state.ypos) + " &")
 time.sleep(1.5)
 
 # Create a new tracker object for Video0 (USB camera)
-tracker = Tracker(camera=None, usb_dev=0, threshold=20, 
+tracker = Tracker(camera=None, usb_dev=0, threshold=20,
                   vflip=True, hflip=True)
 # Clear out the default chatty detection handler
 tracker.events = []
@@ -97,13 +97,13 @@ event = DetectionEvent(handler=save_motion_image_handler,
 
 # Add the servo-steering event / handler
 event = DetectionEvent(handler=motor_handler,
-                       time_between_triggers_s = 0.92,
+                       time_between_triggers_s = 0.8,
                        min_sequential_frames=2,
                        min_contour_area_px=200, state=state)
 # Comment/uncomment to activate
 tracker.add_event(event)
 
-# This one is for RaspiCam.  
+# This one is for RaspiCam.
 #tracker.run()
 # This one is for USB cam
 tracker.run_usb()

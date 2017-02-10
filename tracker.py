@@ -134,7 +134,7 @@ def default_handler(contours, images, state=None):
     log.debug("Largest centroid: " + str(cvu.centroid(contour)) + ", A=" + str(area))
 
 #  Print detection message and save image showing detected motion contours
-def save_motion_image_handler(contours, images, state=None):
+def save_motion_image_handler(contours, images, state=None, mark_laser = True):
     log = logging.getLogger(__name__)
     tmp = np.array(images[0].shape) / 2
     imcenter = (int(tmp[1]), int(tmp[0]))
@@ -144,6 +144,10 @@ def save_motion_image_handler(contours, images, state=None):
     #centroid = cvu.centroid(contour)
     centroid = cvu.avg_contour_centroid(contours)
 
+    if (mark_laser):
+        (max_val, laser_xy) = cvu.find_laser(images[0][:,:,2])
+        log.debug("laser_xy = " + str(laser_xy))
+
     log.debug("c = " + str(centroid))
     # Place the detected contours on the images
     for image in images:
@@ -151,7 +155,8 @@ def save_motion_image_handler(contours, images, state=None):
                          color=(25,128,255), thickness=1)
         cvu.draw_x(image,centroid,length=9)
         cvu.draw_x(image,imcenter,length=9,thickness=1,shadow=False,color=(0xC0, 0xFF, 0x10))
-    
+        if (mark_laser): cvu.draw_x(image, laser_xy, length=9, thickness=2, color=(0,0,255))
+
     result = cvu.get_motion_image(images, contours)
     filename = cvu.imwrite_timestamp(result, prefix="Event_")
     log.info("Wrote " + filename)

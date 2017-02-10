@@ -93,7 +93,7 @@ def draw_x(img, xy, length=5, color=(0xFF, 0x7F, 0x00),
     cv2.line(img, (x1,y1),(x2, y2), color=color, thickness=thickness)
     cv2.line(img, (x1,y2),(x2, y1), color=color, thickness=thickness)
 
-def find_that_laser(image_plane):
+def find_laser(image_plane):
 
     img_filtered = cv2.GaussianBlur(image_plane, (15,15), 0)
     (min_val, max_val, min_region, max_region) = cv2.minMaxLoc(img_filtered)
