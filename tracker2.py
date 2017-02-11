@@ -197,16 +197,31 @@ class BrightInPlane(FrameProcessor):
                                           erode=True, dilate=True)
         return contours, image[:,:,self._color_plane]
 
-#  Useful handler functions
+#  Abstract handler object prototype.  Should be inherited for by any stateful 
+#  handler implementation object (although not explicitly type checked, duck typing
+#  works just fine as long as handler object has a handle function with the 
+#  appropriate signature.
+#  Should also add event detection metadata to handler signature, for convenience
+#  and performance reasons
+class Handler():
+
+    #@abstractmethod
+    def handle(contours, frame_buf, frame_index):
+        raise NotImplementedError("Abstract class does not implement this method.")
+
+#  Useful handler functions - TODO: update these to use new signature.
 
 #  Print detection message to screen
 #  This is now outdated since integrated logging outputs information automatically
+#  for detected events, not necessary to put in a handler.  Non-standard detection
+#  or state information could be logged from such a handler though.
 def default_handler(contours, images, state=None):
     log = logging.getLogger(__name__)
     log.debug("Motion detected in " + str(len(contours)) + " regions!")
     contour, area = cvu.largest_contour(contours)
     log.debug("Largest centroid: " + str(cvu.centroid(contour)) + ", A=" + str(area))
 
+#  Redo this to use new signature
 #  Print detection message and save image showing detected motion contours
 def save_motion_image_handler(contours, images, state=None):
     log = logging.getLogger(__name__)
