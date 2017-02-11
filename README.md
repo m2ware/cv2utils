@@ -15,4 +15,8 @@ coordinates for all detected motion regions.
 
 Includes examples and numerous CV2 utility functions.
 
+See the Wiki for information and instructions for use:
+
+https://github.com/m2ware/cv2utils/wiki
+
 [Originally written for raspberry pi CV/robotics project]
