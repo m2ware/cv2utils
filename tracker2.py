@@ -7,6 +7,7 @@ import numpy as np
 #from picamera.array import PiRGBArray
 #from picamera import PiCamera
 import logging
+import types
 
 import cv2utils.cv2utils as cvu
 
@@ -25,7 +26,6 @@ class Tracker:
         self.subscribers = list()
         self._logger = Tracker._get_default_logger()
         print(__name__)
-
 
     def _update_subscribers(self, frame):
         for subscriber in self.subscribers:
@@ -66,15 +66,18 @@ class Tracker:
             ret, frame = cap.read()
             self._process_frame(frame)
 
+#    This works on raspberry pi, but not on Ubuntu because of dependencies
+#    on pi camera object.  Need to figure out how to fix this, or put a derived
+#    class in another package module so everything works on non-pi platforms.
 #    def run(self):
 #        log = Tracker.get_logger()
 #        log.info("Started tracking on RaspiCam")
-        # Initialize with one frame
+#        # Initialize with one frame
 #        self._hb_time = time.time()
 #        rawCapture = PiRGBArray(self._camera, size=self.res)
 #        self._camera.capture(rawCapture, format="bgr")
 #        log.info("Resolution = " + str(rawCapture.array.shape))
-
+#
 #        for frame in self._camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
 #            self._process_frame(frame)
 #            rawCapture.truncate(0)
@@ -113,7 +116,11 @@ class Subscriber:
             self._event_detector = EventDetector()
         else :
             self._event_detector = event_detector
-        self._handler = handler
+        # If handler is a stateless function, wrap it in a dummy object
+        if (isinstance(handler, types.FunctionType):
+            self._handler = Subscriber.get_dummy_handler_obj(handler)
+        else:
+            self._handler = handler
         self._frame_buf_size = frame_buf_size
         self._frame_buf = [None] * self._frame_buf_size
         self._frame_index = 0
@@ -135,8 +142,18 @@ class Subscriber:
             if (self._handler is not None):
                 self._handler.handle(contours, self._frame_buf, self._frame_index)
 
+    # Create a dummy wrapper object for handler function not requiring any 
+    # state information.
+    @staticmethod
+    def get_dummy_handler_obj(handler_fun):
+        handler_obj = type('DummyHandler', (), {})
+        # Really should check the function inputs to make sure it matches 
+        # correct signature (contours, frame_buffer, frame_index)
+        handler_obj.handle = handler_fun
+        return handler_obj
 
-class FrameProcessor:
+
+class FrameProcessor():
 
     def __init__(self, threshold=25):
         self.threshold=threshold
@@ -183,6 +200,7 @@ class BrightInPlane(FrameProcessor):
 #  Useful handler functions
 
 #  Print detection message to screen
+#  This is now outdated since integrated logging outputs information automatically
 def default_handler(contours, images, state=None):
     log = logging.getLogger(__name__)
     log.debug("Motion detected in " + str(len(contours)) + " regions!")
@@ -264,7 +282,7 @@ class EventDetector:
             return True
         return False
 
-class EventMetadata:
+class EventMetadata():
 
     def __init__(self, max_contour_area, n_seq_frames,
                  time_between_triggers_s=0, n_contours=-1):
