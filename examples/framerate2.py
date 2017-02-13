@@ -5,7 +5,7 @@ from picamera.array import PiRGBArray
 from picamera import PiCamera
 import time
 import cv2
- 
+
 # initialize the camera and grab a reference to the raw camera capture
 print("Initializing piCam")
 camera = PiCamera()
@@ -15,11 +15,11 @@ camera.vflip = True
 rez = (640,480)
 camera.resolution = rez
 camera.framerate = 32
- 
+
 # allow the camera to warmup
 print("warmup...")
 time.sleep(0.1)
- 
+
 # grab an image from the camera
 print("polling camera... CTRL<C> to quit")
 N = 10
@@ -33,7 +33,7 @@ for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=
     # and occupied/unoccupied text
     image = frame.array
     rawCapture.truncate(0)
-    
+
     i += 1
 
     if (i == N):

@@ -13,9 +13,8 @@ import cv2utils.cv2utils as cvu
 
 class Tracker:
 
-    def __init__(self,
-                 heartbeat_frames=500, usb_dev=0,
-                 vflip=False, hflip=False):
+    def __init__(self, usb_dev=0, vflip=False, hflip=False,
+                 heartbeat_frames=500):
 
         self._fr_count = 0
         self._hb_time = 0
@@ -46,9 +45,9 @@ class Tracker:
 
     def _process_frame(self, frame):
         if (self.vflip):
-            img=cv2.flip(img,0)
+            frame=cv2.flip(frame,0)
         if (self.hflip):
-            img=cv2.flip(img,1)
+            frame=cv2.flip(frame,1)
         self._fr_count += 1
         self._update_subscribers(frame)
         self._heartbeat()
@@ -117,7 +116,7 @@ class Subscriber:
         else :
             self._event_detector = event_detector
         # If handler is a stateless function, wrap it in a dummy object
-        if (isinstance(handler, types.FunctionType):
+        if (isinstance(handler, types.FunctionType)):
             self._handler = Subscriber.get_dummy_handler_obj(handler)
         else:
             self._handler = handler
@@ -142,12 +141,12 @@ class Subscriber:
             if (self._handler is not None):
                 self._handler.handle(contours, self._frame_buf, self._frame_index)
 
-    # Create a dummy wrapper object for handler function not requiring any 
+    # Create a dummy wrapper object for handler function not requiring any
     # state information.
     @staticmethod
     def get_dummy_handler_obj(handler_fun):
         handler_obj = type('DummyHandler', (), {})
-        # Really should check the function inputs to make sure it matches 
+        # Really should check the function inputs to make sure it matches
         # correct signature (contours, frame_buffer, frame_index)
         handler_obj.handle = handler_fun
         return handler_obj
@@ -197,9 +196,9 @@ class BrightInPlane(FrameProcessor):
                                           erode=True, dilate=True)
         return contours, image[:,:,self._color_plane]
 
-#  Abstract handler object prototype.  Should be inherited for by any stateful 
+#  Abstract handler object prototype.  Should be inherited for by any stateful
 #  handler implementation object (although not explicitly type checked, duck typing
-#  works just fine as long as handler object has a handle function with the 
+#  works just fine as long as handler object has a handle function with the
 #  appropriate signature.
 #  Should also add event detection metadata to handler signature, for convenience
 #  and performance reasons
@@ -223,10 +222,13 @@ def default_handler(contours, images, state=None):
 
 #  Redo this to use new signature
 #  Print detection message and save image showing detected motion contours
-def save_motion_image_handler(contours, images, state=None):
+def save_motion_image_handler(contours, frame_buf, frame_index):
     log = logging.getLogger(__name__)
-    tmp = np.array(images[0].shape) / 2
+    tmp = np.array(frame_buf[frame_index].shape) / 2
     imcenter = (int(tmp[1]), int(tmp[0]))
+    buf_len = len(frame_buf)
+
+    images = (frame_buf[frame_index%buf_len], frame_buf[(frame_index-1)%buf_len])
 
     default_handler(contours, images)
     contour, area = cvu.largest_contour(contours)
@@ -241,9 +243,9 @@ def save_motion_image_handler(contours, images, state=None):
         cvu.draw_x(image,centroid,length=9)
         cvu.draw_x(image,imcenter,length=9,thickness=1,shadow=False,color=(0xC0, 0xFF, 0x10))
 
-    result = cvu.get_motion_image(images, contours)
-    filename = cvu.imwrite_timestamp(result, prefix="Event_")
-    log.info("Wrote " + filename)
+    #result = cvu.get_motion_image(images, contours)
+    #filename = cvu.imwrite_timestamp(result, prefix="Event_")
+    #log.info("Wrote " + filename)
 
 # This class takes in a set of contours (produced by upstream detection logic) and
 # looks for specific conditions to be met:
@@ -254,12 +256,10 @@ def save_motion_image_handler(contours, images, state=None):
 # Number of sequential frames meeting above criteria >= min_sequential_frames
 class EventDetector:
 
-    def __init__(self, handler=default_handler,
-                 time_between_triggers_s=1.0,
+    def __init__(self, time_between_triggers_s=1.0,
                  min_sequential_frames=1,
                  min_contour_area_px=500, max_contour_area_px=50000,
                  state=None):
-        self.handler = handler
         self._last_event_time = time.time()
         self._trigger_count = 0
         self.time_between_triggers_s = time_between_triggers_s
