@@ -222,30 +222,28 @@ def default_handler(contours, images, state=None):
 
 #  Redo this to use new signature
 #  Print detection message and save image showing detected motion contours
-def save_motion_image_handler(contours, frame_buf, frame_index):
+def save_image_handler(contours, frame_buf, frame_index):
     log = logging.getLogger(__name__)
     tmp = np.array(frame_buf[frame_index].shape) / 2
     imcenter = (int(tmp[1]), int(tmp[0]))
     buf_len = len(frame_buf)
 
-    images = (frame_buf[frame_index%buf_len], frame_buf[(frame_index-1)%buf_len])
+    image = frame_buf[frame_index%buf_len]
 
-    default_handler(contours, images)
     contour, area = cvu.largest_contour(contours)
     #centroid = cvu.centroid(contour)
     centroid = cvu.avg_contour_centroid(contours)
 
     log.debug("c = " + str(centroid))
     # Place the detected contours on the images
-    for image in images:
-        cv2.drawContours(image, contours, -1,
-                         color=(25,128,255), thickness=1)
-        cvu.draw_x(image,centroid,length=9)
-        cvu.draw_x(image,imcenter,length=9,thickness=1,shadow=False,color=(0xC0, 0xFF, 0x10))
+    cv2.drawContours(image, contours, -1,
+                     color=(25,128,255), thickness=1)
+    cvu.draw_x(image,centroid,length=9)
+    cvu.draw_x(image,imcenter,length=9,thickness=1,shadow=False,color=(0xC0, 0xFF, 0x10))
 
-    #result = cvu.get_motion_image(images, contours)
-    #filename = cvu.imwrite_timestamp(result, prefix="Event_")
-    #log.info("Wrote " + filename)
+    filename = cvu.imwrite_timestamp(image, "event_")
+    log.info('Wrote ' + filename)
+
 
 # This class takes in a set of contours (produced by upstream detection logic) and
 # looks for specific conditions to be met:

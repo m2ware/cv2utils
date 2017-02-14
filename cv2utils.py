@@ -10,8 +10,6 @@ import sys
 import logging
 #from .tracker import Tracker
 
-writeComposite = True
-
 def imdiff(image1, image2) :
     diff = cv2.subtract(image2, image1)
     return(diff)
