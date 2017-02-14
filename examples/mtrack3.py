@@ -10,10 +10,14 @@ import logging
 
 class MotorController(Handler):
 
-    def __init__(self):
+    def __init__(self, bias_x=0, bias_y=0, h_pin=20, v_pin=21):
 
         self.xpos = 15.0
         self.ypos = 15.0
+        self.bias_x = bias_x
+        self.bias_y = bias_y
+        self.h_pin = h_pin
+        self.v_pin = v_pin
 
     def handle(self, contours, frame_buf, frame_index):
 
@@ -22,11 +26,11 @@ class MotorController(Handler):
         hres=imsize[1]/2.
         vres=imsize[0]/2.
 
-        biasx = -37
-        biasy = 10
+        #biasx = -37
+        #biasy = 10
 
-        tgtx = hres+biasx
-        tgty = vres+biasy
+        tgtx = hres+self.bias_x
+        tgty = vres+self.bias_y
         # Find area of largest motion contour
         #contour, area = cvu.largest_contour(contours)
         #centroid = cvu.centroid(contour)
@@ -39,9 +43,9 @@ class MotorController(Handler):
         max_delta = 13.0
         hdelta = max_delta*(hpos*np.abs(hpos))
         vdelta = max_delta*(vpos*np.abs(vpos))
-        hpulses = int(np.ceil(np.abs(hdelta)))+1
-        vpulses = int(np.ceil(np.abs(vdelta)))+1
-        log.debug("hpc=" + str(hpulses) + ", vpc=" + str(vpulses))
+        h_pulses = int(np.ceil(np.abs(hdelta)))+1
+        v_pulses = int(np.ceil(np.abs(vdelta)))+1
+        log.debug("hpc=" + str(h_pulses) + ", vpc=" + str(v_pulses))
 
         mindelta = 0.05
 
@@ -65,15 +69,17 @@ class MotorController(Handler):
 
         # Call command-line for PWM pulse train generator as detached processes
         # to steer incrementally toward detected motion.
-        os.system("gpio_pwm 20 10000 " + str(hpulses) + " " +
-                  str(np.round(self.xpos,2)) + " &" )
-        os.system("gpio_pwm 21 10000 " + str(vpulses) + " " +
-                  str(np.round(self.ypos,2)) + " &" )
+        self.servo_steer(self.h_pin, h_pulses, self.xpos)
+        self.servo_steer(self.v_pin, v_pulses, self.ypos)
+
+    def servo_steer(self, pin, pulses, position):
+        os.system("gpio_pwm " + str(pin) + " 10000 " + str(pulses) + " " +
+                  str(position) + " &")
 
 
 # Steer to neutral
-os.system("gpio_pwm 20 10000 50 " + str(15.0) + " &")
-os.system("gpio_pwm 21 10000 50 " + str(15.0) + " &")
+os.system("gpio_pwm 20 10000 25 " + str(15.0) + " &" )
+os.system("gpio_pwm 21 10000 25 " + str(15.0) + " &" )
 time.sleep(1.5)
 
 # Create a new tracker object for Video0 (USB camera)
@@ -81,11 +87,11 @@ tracker = Tracker(usb_dev=0,
                   vflip=True, hflip=True)
 # Clear out the default chatty detection handler
 #tracker.events = []
-motor_controller = MotorController()
+motor_controller = MotorController(bias_x=-37, bias_y=10)
 
 detector = EventDetector(time_between_triggers_s=0.85,
                          min_sequential_frames=2,
-                         min_contour_area_px=500,
+                         min_contour_area_px=200,
                          max_contour_area_px=50000)
 
 
