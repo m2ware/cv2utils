@@ -136,7 +136,7 @@ class Subscriber:
         # the event handler.
         if (self._event_detector.detect(contours)):
             log = Tracker.get_logger()
-            log.info(self.name + ': event detected')
+            log.info('[' + self.name + '] event detected')
             log.debug(self._event_detector.event_metadata)
             if (self._handler is not None):
                 self._handler.handle(contours, self._frame_buf, self._frame_index)
