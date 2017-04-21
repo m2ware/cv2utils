@@ -47,26 +47,11 @@ subscriber = Subscriber(handler=save_image_handler, event_detector=detector,
                         name="Save Image")
 # Comment / uncomment to save periodic captures.
 #tracker.add_subscriber(subscriber)
-'''
-speech_items = ["Hello there!", "How are you doing?", "What is that?",
-                "Are you there?", "Oh, Hi!",
-                "Peek Ah Boo!", "Are you supposed to be here?",
-                "What is your name?", "You are so fancy!", "Is that Ivy?",
-                "Is that Olivia?", "Is that Higgsley?", "Is that a cat?",
-                "Is that Meeya, the cat?", "Is that betty the dog?",
-                "Is that what you have decided to wear today?",
-                "Is it time for a nap?", "I am delighted to have company",
-                "Do I know you?", "I am pleased to make your acquaintance",
-                "My name is sunny", "My name is sunny, nice to meet you!",
-                "I am Sunny the robot and I was named by Ivy Lamb",
-                "You are looking lovely today.", "Oh my, you startled me!",
-                "I was just looking at Twitter.  Things are not good."]
-'''
 espeak_controller = EspeakController(speech_items=speech_items)
 detector = EventDetector(time_between_triggers_s=6,
-                         min_sequential_frames=1,
-                         min_contour_area_px=3000,
-                         max_contour_area_px=50000)
+                         min_sequential_frames=2,
+                         min_contour_area_px=8000,
+                         max_contour_area_px=100000)
 subscriber = Subscriber(handler=espeak_controller, event_detector=detector,
                         name="Espeak")
 # Comment / uncomment to make robot talk
@@ -75,6 +60,6 @@ tracker.add_subscriber(subscriber)
 # Uncomment to turn off debug-level logging
 log = Tracker.get_logger()
 log.level = logging.INFO
-
+#log.level = logging.DEBUG
 # Run with USB cam
 tracker.run_usb()

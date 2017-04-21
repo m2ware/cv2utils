@@ -47,5 +47,8 @@ class EspeakController(Handler):
     def _speak(self, idx=0):
         if len(self._speech_items) == 0:
             return
-        os.system("espeak " + self.flags + " \"" +
-                  self._speech_items[idx] + "\" --stdout | aplay &")
+        #os.system("espeak " + self.flags + " '" +
+        #          self._speech_items[idx] + "' --stdout | aplay &")
+        os.system("espeak " + self.flags + " '" +
+                  self._speech_items[idx] + "' &")
+
