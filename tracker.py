@@ -196,7 +196,7 @@ class DetectionEvent:
     def _meets_min_area_contour(self, contour):
         if cv2.contourArea(contour) >= self.min_contour_area_px:
             return true
-            
+
     def _meets_max_area_contour(self, contour):
         if cv2.contourArea(contour) <= self.max_contour_area_px:
             return true
@@ -211,14 +211,14 @@ class DetectionEvent:
 class RegionOfInterestDetector:
 
     # Abstract method, should return a collection of contours defining
-    # regions of interest that will be examined for appropriate size and 
+    # regions of interest that will be examined for appropriate size and
     # frame count criteria
     #@abstractmethod
     def get_regions_of_interest(self, images):
         raise("Abstract class does not implement this method.")
-            
+
 class MotionRegionOfInterestDetector(RegionOfInterestDetector):
-    
+
     def __init__(self, threshold=25):
         self._threshold = 25
 
@@ -227,24 +227,24 @@ class MotionRegionOfInterestDetector(RegionOfInterestDetector):
         contours, mask = cvu.get_contours(diff_gray, thresh=self._threshold,
                                           erode=True, dilate=True)
         return contours, diff
-            
-        
+
+
 class DetectBrightestInPlane(RegionOfInterestDetector):
-        
+
     # Restrict to a single color plane, find bright spots
     def __init__(self, threshold=25, color_plane=0):
         self._threshold = 25
         self._color_plane = color_plane
-            
+
     #  This detector looks at only one color plane, removes the average across the image,
     #  and identifies regions exhibiting high values.
     def get_regions_of_interest(self, images):
-            
+
         plane = images[1][:,:,color_plane]
         meanval = cv2.mean(plane)
         mean_removed_plane = plane-meanval
 
         contours, mask = cvu.get_contours(mean_removed_plane, thresh=self._threshold,
                                           erode=True, dilate=True)
-            
+
         return contours, plane

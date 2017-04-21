@@ -4,6 +4,8 @@ from picamera import PiCamera
 from cv2utils.tracker2 import Tracker, Subscriber, Handler, MotionProcessor, EventDetector
 from cv2utils.tracker2 import save_image_handler
 from cv2utils.motorcontroller import MotorController
+from cv2utils.espeakcontroller import EspeakController
+from pibotspeech import speech_items
 import cv2utils.cv2utils as cvu
 import os
 import numpy as np
@@ -11,9 +13,10 @@ import time
 import logging
 
 # Steer to neutral
-os.system("gpio_pwm 20 10000 25 15 &" )
-os.system("gpio_pwm 21 10000 25 15 &" )
-time.sleep(1.5)
+time.sleep(0.5)
+os.system("gpio_pwm 20 10000 25 15 & " )
+os.system("gpio_pwm 21 10000 25 15 & " )
+time.sleep(1.0)
 
 # Create a new tracker object for Video0 (USB camera)
 tracker = Tracker(usb_dev=0,
@@ -21,9 +24,9 @@ tracker = Tracker(usb_dev=0,
 
 # Create a subscriber for detecting motion and steering the camera
 # My laser is a little bit off-center, hence the bias adjustment...
-motor_controller = MotorController(bias_x=-37, bias_y=10, steering_gain=2.0)
+motor_controller = MotorController(bias_x=-37, bias_y=10, steering_gain=4.0)
 
-detector = EventDetector(time_between_triggers_s=0.5,
+detector = EventDetector(time_between_triggers_s=0.9,
                          min_sequential_frames=2,
                          min_contour_area_px=500,
                          max_contour_area_px=50000)
@@ -36,18 +39,42 @@ tracker.add_subscriber(subscriber)
 # This one has a built-in 60s delay between saves
 # Note that if you leave this on it can fill up your disk in a hurry with
 # Saved image frames!!!
-detector = EventDetector(time_between_triggers_s=60.0,
+detector = EventDetector(time_between_triggers_s=30.0,
                          min_sequential_frames=1,
                          min_contour_area_px=500,
                          max_contour_area_px=50000)
 subscriber = Subscriber(handler=save_image_handler, event_detector=detector,
                         name="Save Image")
 # Comment / uncomment to save periodic captures.
-# tracker.add_subscriber(subscriber)
+#tracker.add_subscriber(subscriber)
+'''
+speech_items = ["Hello there!", "How are you doing?", "What is that?",
+                "Are you there?", "Oh, Hi!",
+                "Peek Ah Boo!", "Are you supposed to be here?",
+                "What is your name?", "You are so fancy!", "Is that Ivy?",
+                "Is that Olivia?", "Is that Higgsley?", "Is that a cat?",
+                "Is that Meeya, the cat?", "Is that betty the dog?",
+                "Is that what you have decided to wear today?",
+                "Is it time for a nap?", "I am delighted to have company",
+                "Do I know you?", "I am pleased to make your acquaintance",
+                "My name is sunny", "My name is sunny, nice to meet you!",
+                "I am Sunny the robot and I was named by Ivy Lamb",
+                "You are looking lovely today.", "Oh my, you startled me!",
+                "I was just looking at Twitter.  Things are not good."]
+'''
+espeak_controller = EspeakController(speech_items=speech_items)
+detector = EventDetector(time_between_triggers_s=6,
+                         min_sequential_frames=1,
+                         min_contour_area_px=3000,
+                         max_contour_area_px=50000)
+subscriber = Subscriber(handler=espeak_controller, event_detector=detector,
+                        name="Espeak")
+# Comment / uncomment to make robot talk
+tracker.add_subscriber(subscriber)
 
 # Uncomment to turn off debug-level logging
-#log = Tracker.get_logger()
-#log.level = logging.INFO
+log = Tracker.get_logger()
+log.level = logging.INFO
 
 # Run with USB cam
 tracker.run_usb()
