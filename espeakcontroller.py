@@ -9,7 +9,7 @@ import random
 
 class EspeakController(Handler):
 
-    def __init__(self, flags='-v en+f4 -p 60 -s 190',
+    def __init__(self, flags='-v en+f4 -p 60 -s 170',
                  speech_items=['hello!', 'goodbye!'],
                  sequential=False):
         """

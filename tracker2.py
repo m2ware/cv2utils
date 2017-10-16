@@ -8,11 +8,21 @@ import numpy as np
 #from picamera import PiCamera
 import logging
 import types
+from threading import Thread
 
 import cv2utils.cv2utils as cvu
 
 class Tracker:
 
+    ''' Create a new Tracker object with which to monitor video streams.
+
+        Inputs:
+
+        usb_dev : Video device number for usb camera (default=0 indicates '/dev/video0')
+        vflip   : Boolean, indicates whether to vertically flip frames (default=False)
+        hflip   : Boolean, indicates whether to horizontally flip frames (default=False)
+        heartbeat_frames : Int, number of frames between heartbeat / FPS measurements (default=500)
+    '''
     def __init__(self, usb_dev=0, vflip=False, hflip=False,
                  heartbeat_frames=500):
 
@@ -28,7 +38,8 @@ class Tracker:
 
     def _update_subscribers(self, frame):
         for subscriber in self.subscribers:
-            subscriber.update(frame)
+            Thread(target=subscriber.update, args=(frame,)).start()
+            #subscriber.update(frame)
 
     def get_logger():
         log = logging.getLogger(__name__)
@@ -44,26 +55,51 @@ class Tracker:
                   " fps=" + str(np.round(fps,2)))
 
     def _process_frame(self, frame):
-        if (self.vflip):
+        if (self.vflip and self.hflip):
+            frame=cv2.flip(frame,-1)
+        elif (self.vflip):
             frame=cv2.flip(frame,0)
-        if (self.hflip):
+        elif (self.hflip):
             frame=cv2.flip(frame,1)
         self._fr_count += 1
         self._update_subscribers(frame)
         self._heartbeat()
 
+    '''
+        run_usb - starts processing of video frames from usb camera
+        Arguments:
+          none
+
+        Returns:
+          none
+    '''
     def run_usb(self):
         log = Tracker.get_logger()
         log.info("Started tracking on video" + str(self.usb_dev))
         # Initialize with one frame
-        cap = cv2.VideoCapture(self.usb_dev)
+        self._cap = cv2.VideoCapture(self.usb_dev)
         self._hb_time = time.time()
-        ret, frame = cap.read()
+        self._stopped = False
+        self._grabbed = False
+        ret, frame = self._cap.read()
         log.info("Resolution = " + str(frame.shape))
 
+        #while(True):
+        #    ret, frame = self._cap.read()
+        #    self._process_frame(frame)
+        Thread(target=self._capture, args=()).start()
+        return
+
+    def _capture(self):
         while(True):
-            ret, frame = cap.read()
+            if (self._stopped):
+                return
+            self._grabbed, frame = self._cap.read()
             self._process_frame(frame)
+
+    def stop(self):
+        # Stop the capture thread
+        self._stopped = True
 
 #    This works on raspberry pi, but not on Ubuntu because of dependencies
 #    on pi camera object.  Need to figure out how to fix this, or put a derived
@@ -81,6 +117,13 @@ class Tracker:
 #            self._process_frame(frame)
 #            rawCapture.truncate(0)
 
+    '''
+        add_subscriber(self, subscriber)
+
+        Description:
+          Adds a subscriber object to the listener queue.  Each subscriber will receive frame
+          updates for processing once the camera is running.
+    '''
     def add_subscriber(self, subscriber):
         log = Tracker.get_logger()
         # Should add ID to events for logging clarity...
@@ -99,8 +142,26 @@ class Tracker:
         console.setFormatter(formatter)
         logging.getLogger(__name__).addHandler(console)
 
+'''
+    class Subscriber
+
+    Description:
+      Subscriber objects are added to a listener queue managed by the Tracker object.
+      Each subscriber can assign specific frame processing and event detection logic.
+'''
 class Subscriber:
 
+    '''
+        Initialize Subscriber object.
+
+        Arguments:
+          frame_processor : frame processor object.  Default=None uses default motion frame processor
+          event_detector  : event detector object.  Default=None uses default event detector
+          handler         : event handler object responds to detection events.  Default=None gives
+                            dummy logger.
+          frame_buf_size  : int, default=2.  Frame buffer size dictates how many past frames are
+                            kept for processing / detection logic requiring more than 2.
+    '''
     def __init__(self, frame_processor=None,
                  event_detector=None,
                  handler=None, frame_buf_size=2,
@@ -125,10 +186,22 @@ class Subscriber:
         self._frame_index = 0
         self.name = name
 
+    ''' update(self, frame)
+
+        Description:
+          Called by tracker object for each new video frame.
+        Arguments:
+          frame : CV2 image frame passed to subscriber
+        Returns:
+          none
+    '''
     def update(self, frame):
         # Store the frame in the frame buffer
         self._frame_buf[self._frame_index] = frame
         self._frame_index = (self._frame_index + 1) % self._frame_buf_size
+
+        if (self._event_detector.detection_ready() is False):
+            return
         # Run image processing to identify regions of interest
         contours, detectFrame = self._frame_processor.process(frame_buf=self._frame_buf,
                                                               frame_index=self._frame_index)
@@ -266,6 +339,14 @@ class EventDetector:
         self.min_sequential_frames = min_sequential_frames
         self._state = state
 
+    def detection_ready(self):
+        now = time.time()
+        delta_t = now-self._last_event_time
+        if (delta_t) < self.time_between_triggers_s :
+            return False
+        else:
+            return True
+
     # Apply detection criteria and invoke handler if satisfied
     def detect(self, contours):
         if (contours is None): return False
@@ -274,11 +355,11 @@ class EventDetector:
         else:
             self._trigger_count = 0
             return False
-        now = time.time()
-        delta_t = now-self._last_event_time
-        if (delta_t) < self.time_between_triggers_s :
+        if (self.detection_ready() is False):
             return False
         if self._trigger_count >= self.min_sequential_frames :
+            now = time.time()
+            delta_t = now - self._last_event_time
             self.event_metadata = EventMetadata(max_contour_area=self._largest_contour_area,
                                                 n_seq_frames=self._trigger_count,
                                                 time_between_triggers_s=delta_t,
