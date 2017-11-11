@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 
-from cv2utils.tracker2 import Tracker, Subscriber, Handler, MotionProcessor, EventDetector
+from cv2utils.tracker import Tracker, Handler, EventDetector
+from cv2utils.frameprocessor import MotionProcessor
+from cv2utils.subscriber import Subscriber
 import cv2utils.cv2utils as cvu
 import os
 import numpy as np

@@ -1,7 +1,9 @@
 #!/usr/bin/python3
 
-from cv2utils.tracker2 import Tracker, Subscriber, Handler, MotionProcessor, EventDetector
-import cv2utils.cv2utils as cvu
+from cv2utils.tracker import Tracker, Handler, EventDetector
+#from cv2utils.frameprocessor import MotionProcessor
+#from cv2utils.subscriber import Subscriber
+#import cv2utils.cv2utils as cvu
 import os
 import numpy as np
 import logging
@@ -41,6 +43,7 @@ class EspeakController(Handler):
         else:
             idx = random.randint(0, len(self._speech_items)-1)
 
+        log.info("Playing speech item {0} of {1}".format(idx, len(self._speech_items)));
         # Call espeak
         self._speak(idx)
 

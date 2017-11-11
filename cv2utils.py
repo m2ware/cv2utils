@@ -66,6 +66,8 @@ def get_contours(img, thresh=128, max=255, dilate=True, erode=True):
 
 def centroid(contour):
     M = cv2.moments(contour)
+    if int(M['m00'])==0:
+        return (0,0)
     cx = int(M['m10']/M['m00'])
     cy = int(M['m01']/M['m00'])
     return (cx, cy)
