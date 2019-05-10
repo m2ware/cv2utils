@@ -15,7 +15,7 @@ rez = (320, 240)
 #camera.framerate = 8
 
 def motor_handler(contours, images, state=None):
-    
+
     imsize = images[0].shape
     print(imsize)
     hres=imsize[1]/2.
@@ -26,18 +26,18 @@ def motor_handler(contours, images, state=None):
     # Normalize the largest motion centroid in the [-1,1] space
     hpos = (centroid[0]-hres)/hres
     vpos = (centroid[1]-vres)/vres
-    # Convert to number of PWM pulses 
+    # Convert to number of PWM pulses
     max_ticks = 4.0
     hticks = np.round(max_ticks*np.abs(hpos))
     vticks = np.round(max_ticks*np.abs(vpos))
 
-    #hticks = 0; vticks = 0    
+    #hticks = 0; vticks = 0
     #if (np.abs(hpos))>0.15: hticks = 1
     #if (np.abs(vpos))>0.15: vticks = 1
-    
+
     # These are hard-coded motor positions for L/R and U/D
     # 15 corresponds to 1500us position (neutral) on standard servo
-    if (hpos < 0): htgt = 23 
+    if (hpos < 0): htgt = 23
     else: htgt = 8
     if (vpos > 0): vtgt = 23
     else: vtgt = 8
@@ -50,12 +50,12 @@ def motor_handler(contours, images, state=None):
     print("htgt= " + str(htgt) + ", vtgt= " + str(vtgt))
 
     # Call command-line for PWM pulse train generator as detached processes
-    # to steer incrementally toward detected motion.  
+    # to steer incrementally toward detected motion.
     os.system("gpio_pwm 20 10000 " + str(hticks) + " " + str(htgt) + " &" )
     os.system("gpio_pwm 21 10000 " + str(vticks) + " " + str(vtgt) + " &" )
 
 # Create a new tracker object for Video0 (USB camera)
-tracker = Tracker(camera=None, res=rez, usb_dev=0, threshold=55, 
+tracker = Tracker(camera=None, res=rez, usb_dev=0, threshold=55,
                   vflip=True, hflip=True)
 # Clear out the default chatty detection handler
 tracker.events = []
