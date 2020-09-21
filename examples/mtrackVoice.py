@@ -16,7 +16,7 @@ import logging
 # Steer to neutral
 time.sleep(0.5)
 os.system("gpio_pwm 20 10000 25 15 & " )
-os.system("gpio_pwm 21 10000 25 15 & " )
+os.system("gpio_pwm 21 10000 25 14 & " )
 time.sleep(1.0)
 
 #colorbounds = ([135, 83, 23], [253, 198, 56])
@@ -31,13 +31,13 @@ tracker = Tracker(usb_dev=0,
 
 # Create a subscriber for detecting motion and steering the camera
 # My laser is a little bit off-center, hence the bias adjustment...
-motor_controller = MotorController(bias_x=-30, bias_y=25,
-                                   steering_gain=2.5,
+motor_controller = MotorController(bias_x=-10, bias_y=15,
+                                   steering_gain=3.5,
                                    target_global_centroid=False)
 
-detector = EventDetector(time_between_triggers_s=0.9,
+detector = EventDetector(time_between_triggers_s=0.85,
                          min_sequential_frames=2,
-                         min_contour_area_px=400,
+                         min_contour_area_px=500,
                          max_contour_area_px=50000)
 
 subscriber = Subscriber(handler=motor_controller,
@@ -76,11 +76,13 @@ subscriber = Subscriber(handler=espeak_controller,
 
 # Uncomment to turn off debug-level logging
 log = Tracker.get_logger()
-log.level = logging.INFO
-#log.level = logging.DEBUG
+# log.level = logging.INFO
+log.level = logging.DEBUG
 # Run with USB cam
 tracker.run_usb()
 
 while (True):
-    print('main running thread')
+
+    log.info('Main thread running.')
+    #print('main running thread')
     time.sleep(60)
