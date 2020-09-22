@@ -1,1 +1,4 @@
 *.jpeg
+*.log
+*.log.*
+*.png

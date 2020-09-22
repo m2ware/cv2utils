@@ -3,7 +3,7 @@
 from picamera import PiCamera
 from cv2utils.tracker import Tracker, Handler, EventDetector
 from cv2utils.frameprocessor import MotionProcessor, ColorDetector
-from cv2utils.tracker import save_image_handler
+from cv2utils.tracker import save_image_handler, show_image_handler, highlight_contours
 from cv2utils.subscriber import Subscriber
 from cv2utils.motorcontroller import MotorController
 from cv2utils.espeakcontroller import EspeakController
@@ -15,8 +15,8 @@ import logging
 
 # Steer to neutral
 time.sleep(0.5)
-os.system("gpio_pwm 20 10000 25 15 & " )
-os.system("gpio_pwm 21 10000 25 14 & " )
+# os.system("gpio_pwm 20 10000 25 15 & " )
+# os.system("gpio_pwm 21 10000 25 14 & " )
 time.sleep(1.0)
 
 #colorbounds = ([135, 83, 23], [253, 198, 56])
@@ -26,8 +26,10 @@ colorbounds = ([107, 70, 45], [114, 255, 225])
 frame_proc = MotionProcessor()
 
 # Create a new tracker object for Video0 (USB camera)
+display_video = True
 tracker = Tracker(usb_dev=0,
-                  vflip=True, hflip=True)
+                  vflip=True, hflip=True,
+                  display_video=display_video)
 
 # Create a subscriber for detecting motion and steering the camera
 # My laser is a little bit off-center, hence the bias adjustment...
@@ -44,22 +46,35 @@ subscriber = Subscriber(handler=motor_controller,
                         frame_processor=frame_proc,
                         event_detector=detector,
                         name="Motor Tracker")
-tracker.add_subscriber(subscriber)
+# tracker.add_subscriber(subscriber)
 
 # Create a subscriber for detecting motion and saving an image
 # This one has a built-in 60s delay between saves
 # Note that if you leave this on it can fill up your disk in a hurry with
 # Saved image frames!!!
-detector = EventDetector(time_between_triggers_s=30.0,
+detector2 = EventDetector(time_between_triggers_s=30.0,
                          min_sequential_frames=2,
                          min_contour_area_px=400,
                          max_contour_area_px=50000)
+
 subscriber = Subscriber(handler=save_image_handler,
                         frame_processor=frame_proc,
-                        event_detector=detector,
+                        event_detector=detector2,
                         name="Save Image")
 # Comment / uncomment to save periodic captures.
 # tracker.add_subscriber(subscriber)
+
+detector = EventDetector(time_between_triggers_s=0.001,
+                         min_sequential_frames=1,
+                         min_contour_area_px=200,
+                         max_contour_area_px=5000000)
+
+subscriber = Subscriber(handler=highlight_contours,
+                        frame_processor=frame_proc,
+                        event_detector=detector,
+                        name="Show Image", log_events=False)
+if display_video:
+    tracker.add_subscriber(subscriber)
 
 flags = '-v en+f3 -p 50 -s 175'
 espeak_controller = EspeakController(speech_items=speech_items, flags=flags)

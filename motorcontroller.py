@@ -13,7 +13,8 @@ class MotorController(Handler):
     def __init__(self, h_pin=20, v_pin=21,
                  steering_gain=10.0,
                  bias_x=0, bias_y=0,
-                 target_global_centroid=False):
+                 target_global_centroid=False,
+                 max_pulses = 3):
         """
         Initialize MotorController
 
@@ -29,6 +30,7 @@ class MotorController(Handler):
                                  largest detection region.  If true, will
                                  target the area-weighted average of all
                                  detection regions.
+        max_pulses - int default 3, limit the number of pulses in any control signal
         """
 
         # Servo position indicators, in increments of 100us pulse widths
@@ -40,6 +42,7 @@ class MotorController(Handler):
         self.v_pin = v_pin
         self.steering_gain = steering_gain
         self.target_global_centroid = target_global_centroid
+        self.max_pulses = max_pulses
 
     def handle(self, contours, frame_buf, frame_index):
 
@@ -68,6 +71,10 @@ class MotorController(Handler):
         vdelta = self.steering_gain*(vpos*np.abs(vpos))
         h_pulses = int(np.ceil(np.abs(hdelta)))+1
         v_pulses = int(np.ceil(np.abs(vdelta)))+1
+
+        h_pulses = np.minimum(h_pulses, self.max_pulses)
+        v_pulses = np.minimum(v_pulses, self.max_pulses)
+
         log.debug("hpc=" + str(h_pulses) + ", vpc=" + str(v_pulses))
 
         self.xpos -= hdelta;

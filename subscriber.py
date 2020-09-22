@@ -34,7 +34,8 @@ class Subscriber:
     def __init__(self, frame_processor=None,
                  event_detector=None,
                  handler=None, frame_buf_size=2,
-                 name='subscriber1' ):
+                 name='subscriber1',
+                 log_events=True):
 
         if (frame_processor is None):
             # Default motion processor
@@ -54,6 +55,7 @@ class Subscriber:
         self._frame_buf = [None] * self._frame_buf_size
         self._frame_index = 0
         self.name = name
+        self.log_events = log_events
 
     ''' update(self, frame)
 
@@ -67,7 +69,6 @@ class Subscriber:
     def update(self, frame):
         # Store the frame in the frame buffer
         self._frame_buf[self._frame_index] = frame
-        self._frame_index = (self._frame_index + 1) % self._frame_buf_size
 
         if (self._event_detector.detection_ready() is False):
             return
@@ -77,11 +78,15 @@ class Subscriber:
         # If event detector is triggered by detection artifact, then run
         # the event handler.
         if (self._event_detector.detect(contours)):
-            log = Tracker.get_logger()
-            log.info('[' + self.name + '] event detected')
-            log.debug(self._event_detector.event_metadata)
+            if self.log_events:
+                log = Tracker.get_logger()
+                log.info('[' + self.name + '] event detected')
+                log.debug(self._event_detector.event_metadata)
             if (self._handler is not None):
                 self._handler.handle(contours, self._frame_buf, self._frame_index)
+
+        self._frame_index = (self._frame_index + 1) % self._frame_buf_size
+
 
     # Create a dummy wrapper object for handler function not requiring any
     # state information.
@@ -92,5 +97,3 @@ class Subscriber:
         # correct signature (contours, frame_buffer, frame_index)
         handler_obj.handle = handler_fun
         return handler_obj
-
-

@@ -14,6 +14,10 @@ import cv2utils.cv2utils as cvu
 #from cv2utils.subscriber import Subscriber
 from cv2utils.frameprocessor import FrameProcessor
 
+log = logging.getLogger(__name__)
+#log = Tracker._get_default_logger()
+
+
 class Tracker:
 
     ''' Create a new Tracker object with which to monitor video streams.
@@ -26,7 +30,7 @@ class Tracker:
         heartbeat_frames : Int, number of frames between heartbeat / FPS measurements (default=500)
     '''
     def __init__(self, usb_dev=0, vflip=False, hflip=False,
-                 heartbeat_frames=500):
+                 heartbeat_frames=500, display_video=False):
 
         self._fr_count = 0
         self._hb_time = 0
@@ -34,8 +38,10 @@ class Tracker:
         self.usb_dev = usb_dev
         self.vflip = vflip
         self.hflip = hflip
+        self.display_video = display_video
         self.subscribers = list()
         self._logger = Tracker._get_default_logger()
+        self._prev_frame = None
         print(__name__)
 
     def _update_subscribers(self, frame):
@@ -58,14 +64,19 @@ class Tracker:
 
     def _process_frame(self, frame):
         if (self.vflip and self.hflip):
-            frame=cv2.flip(frame,-1)
+            frame = cv2.flip(frame,-1)
         elif (self.vflip):
-            frame=cv2.flip(frame,0)
+            frame = cv2.flip(frame,0)
         elif (self.hflip):
-            frame=cv2.flip(frame,1)
+            frame = cv2.flip(frame,1)
         self._fr_count += 1
         self._update_subscribers(frame)
         self._heartbeat()
+
+        if self.display_video:
+            time.sleep(0.05) # sufficient time for subscriber updates???
+            cv2.imshow('Tracker', frame)
+            cv2.waitKey(1)
 
     '''
         run_usb - starts processing of video frames from usb camera
@@ -132,6 +143,7 @@ class Tracker:
         log.info("Added subscriber [" + subscriber.name + "]")
         self.subscribers.append(subscriber)
 
+    @staticmethod
     def _get_default_logger():
         logging.basicConfig(level=logging.DEBUG,
                             format='[%(asctime)s][%(levelname)s]%(message)s',
@@ -168,30 +180,46 @@ def default_handler(contours, images, state=None):
     contour, area = cvu.largest_contour(contours)
     log.debug("Largest centroid: " + str(cvu.centroid(contour)) + ", A=" + str(area))
 
-#  Redo this to use new signature
-#  Print detection message and save image showing detected motion contours
-def save_image_handler(contours, frame_buf, frame_index):
-    log = logging.getLogger(__name__)
+
+def highlight_contours(contours, frame_buf, frame_index, color=(25, 128, 255)):
     tmp = np.array(frame_buf[frame_index].shape) / 2
     imcenter = (int(tmp[1]), int(tmp[0]))
     buf_len = len(frame_buf)
-
     image = frame_buf[frame_index%buf_len]
-
     contour, area = cvu.largest_contour(contours)
     #centroid = cvu.centroid(contour)
     centroid = cvu.avg_contour_centroid(contours)
-
-    log.debug("c = " + str(centroid))
+    # log.debug("c = " + str(centroid))
     # Place the detected contours on the images
     cv2.drawContours(image, contours, -1,
-                     color=(25,128,255), thickness=1)
+                     color=color, thickness=1)
     cvu.draw_x(image,centroid,length=9)
-    cvu.draw_x(image,imcenter,length=9,thickness=1,shadow=False,color=(0xC0, 0xFF, 0x10))
+    cvu.draw_x(image,imcenter, length=3,
+               thickness=1, shadow=False,
+               color=(0xC0, 0xFF, 0x10))
+
+#  Redo this to use new signature
+#  Print detection message and save image showing detected motion contours
+def save_image_handler(contours, frame_buf, frame_index):
+    highlight_contours(contours, frame_buf, frame_index)
 
     filename = cvu.imwrite_timestamp(image, "event_")
     log.info('Wrote ' + filename)
 
+
+def show_image_handler(contours, frame_buf, frame_index):
+    log.debug('[show_image_handler]')
+    highlight_contours(contours, frame_buf, frame_index)
+    image = frame_buf[frame_index%len(frame_buf)]
+    # log.info('Displaying image...')
+    cv2.imshow('Show Image Handler', image)
+    if cv2.waitKey(1) == 10:
+        log.debug('SPACE')
+        cv2.destroyAllWindows()
+
+
+def do_nothing_handler(contours, frame_buf, frame_index):
+    pass
 
 # This class takes in a set of contours (produced by upstream detection logic) and
 # looks for specific conditions to be met:
